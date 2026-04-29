@@ -1,0 +1,74 @@
+﻿'@Folder "Modules"
+Private Sub Worksheet_SelectionChange(ByVal Target As Range)
+    Application.EnableEvents = False
+    Application.ScreenUpdating = False
+    
+    File_Name = Application.ThisWorkbook.Name
+    
+    On Error GoTo TooManySelected
+    
+    If Target.Cells.Count = 1 Then
+    
+        If (Not Intersect(Target, Range("K2")) Is Nothing) Then
+            
+            NewHierarchy.Show
+            GoTo TooManySelected
+            
+        End If
+        
+        If (Not Intersect(Target, Range("D3")) Is Nothing) Or (Not Intersect(Target, Range("K3")) Is Nothing) Or (Not Intersect(Target, Range("L3")) Is Nothing) Then
+            CreatePartNumbers.Protect Contents:=False
+            ExtendCol = ActiveCell.Column
+            ExtendValue = CreatePartNumbers.Cells(5, ExtendCol).Value
+            
+            'Project Number: Remove Extra Spaces
+            While Right(ExtendValue, 1) = " "
+                ExtendValue = Left(ExtendValue, (Len(ExtendValue) - 1))
+            Wend
+    
+            If ExtendValue <> "" Then
+            Answer = MsgBox("Do you want to extend " & Chr(34) & ExtendValue & Chr(34) & " down?", vbQuestion + vbYesNo, Title:="Extend Value")
+                If Answer = 6 Then
+                    For J = 5 To 103
+                        If CreatePartNumbers.Cells(J, ExtendCol).Value <> ExtendValue Then
+                        CreatePartNumbers.Cells(J, ExtendCol).Value = ExtendValue
+                        Else
+                        End If
+                    Next J
+                End If
+            End If
+            
+            CreatePartNumbers.Protect DrawingObjects:=True, Contents:=True, Scenarios:=True, AllowFiltering:=True
+            
+        ElseIf (Not Intersect(Target, Range("G5:G103")) Is Nothing) Then
+            CreatePartNumbers.Protect Contents:=False
+            
+            On Error Resume Next
+            
+            With Target.Validation
+                .InputTitle = "Description"
+                .InputMessage = "Max 40 Characters" & Chr(10) & "(Current: " & Len(Target) & ")"
+                .ShowInput = True
+            End With
+            
+            On Error GoTo 0
+            
+            CreatePartNumbers.Protect DrawingObjects:=True, Contents:=True, Scenarios:=True, AllowFiltering:=True
+        ElseIf (Not Intersect(Target, Range("H5:H103")) Is Nothing) Then
+            CreatePartNumbers.Protect Contents:=False
+            On Error Resume Next
+            With Target.Validation
+                .InputTitle = "Manufacturer Info"
+                .InputMessage = "Max 30 Characters" & Chr(10) & "(Current: " & Len(Target) & ")"
+                .ShowInput = True
+            End With
+            On Error GoTo 0
+            CreatePartNumbers.Protect DrawingObjects:=True, Contents:=True, Scenarios:=True, AllowFiltering:=True
+        End If
+    End If
+    
+TooManySelected:
+    
+    Application.EnableEvents = True
+    Application.ScreenUpdating = True
+End Sub

@@ -1,0 +1,18 @@
+﻿'@Folder "Modules"
+Private Sub Worksheet_SelectionChange(ByVal Target As Range)
+    Application.EnableEvents = False
+    Application.ScreenUpdating = False
+    File_Name = Application.ThisWorkbook.Name
+    On Error GoTo TooManySelected
+    If Target.Cells.Count = 1 Then
+        If (Not Intersect(Target, Range("C2")) Is Nothing) Then
+            PartHistory.Protect Contents:=False
+            PartHistory.Range("$B$3:$K$1048576").AutoFilter Field:=2, Criteria1:=UCase(Environ("Username"))
+            PartHistory.Protect DrawingObjects:=True, Contents:=True, Scenarios:=True, AllowFiltering:=True
+        End If
+    End If
+    
+TooManySelected:
+    Application.EnableEvents = True
+    Application.ScreenUpdating = True
+End Sub

@@ -1,0 +1,204 @@
+﻿'@Folder "Modules"
+Private Sub Workbook_Open()
+        
+    File_Name = Application.ThisWorkbook.Name
+    Application.ScreenUpdating = False
+    Application.DisplayAlerts = False
+    CreatePartNumbers.Protect Contents:=False
+    MakeParts.Protect Contents:=False
+    
+    MakeParts.Range("B6:J1048576").ClearContents
+    MakeParts.Protect Contents:=True
+    
+    CreatePartNumbers.Activate
+    CreatePartNumbers.Activate
+    RevNum = Revisions.Cells(5, 2).Value
+    RevDate = Revisions.Cells(5, 3).Value
+    
+    On Error GoTo CannotFindRevFile
+        Workbooks.Open Filename:="\\USWWQ-P-FS01\cadfiles\SapTools\Archive\SAP Tools Rev History.xlsm"
+    On Error GoTo 0
+    
+    NewRevNum = Workbooks("SAP Tools Rev History.xlsm").Worksheets("RevHistory").Cells(5, 3).Value
+    NewRevDate = Workbooks("SAP Tools Rev History.xlsm").Worksheets("RevHistory").Cells(5, 4).Value
+    NewRevDesc = Workbooks("SAP Tools Rev History.xlsm").Worksheets("RevHistory").Cells(5, 5).Value
+    Workbooks("SAP Tools Rev History.xlsm").Close
+    
+    If ((RevNum = NewRevNum) And (RevDate = NewRevDate)) Then
+        CreatePartNumbers.Cells(2, 2).Value = "Revision: " & RevNum & " (" & RevDate & ")"
+        CreatePartNumbers.Cells(2, 2).Font.Italic = True
+        CreatePartNumbers.Cells(2, 2).Font.ThemeColor = xlThemeColorDark1
+        CreatePartNumbers.Cells(2, 2).Font.TintAndShade = -0.499984740745262
+    ElseIf ((RevNum > NewRevNum) And (RevDate >= NewRevDate)) Then
+        CreatePartNumbers.Cells(2, 2).Value = "Current Revision: " & RevNum & " beta (" & RevDate & ")"
+        CreatePartNumbers.Cells(2, 2).Font.Italic = True
+        CreatePartNumbers.Cells(2, 2).Font.Color = -11489280
+        CreatePartNumbers.Cells(2, 2).Font.TintAndShade = 0
+        NewRevDesc = Revisions.Cells(5, 4).Value
+        Application.ScreenUpdating = True
+        Application.ScreenUpdating = False
+    Else
+        CreatePartNumbers.Cells(2, 2).Value = "New Revison Available - Current Revision: " & RevNum & " (" & RevDate & ")"
+        CreatePartNumbers.Cells(2, 2).Font.Italic = True
+        CreatePartNumbers.Cells(2, 2).Font.Color = -16776961
+        CreatePartNumbers.Cells(2, 2).Font.TintAndShade = 0
+        Application.ScreenUpdating = True
+        Application.ScreenUpdating = False
+        MsgBox "Revision: " & NewRevNum & " (" & NewRevDate & ")" + vbCr + vbCr + "Revision Description:" + vbCr + NewRevDesc _
+        , Title:="New Revision Available!"
+    End If
+    
+    RevNote
+    ReadFromDatabase
+    
+    Range("Z105").Select
+    ActiveWindow.ScrollColumn = 1
+    ActiveWindow.ScrollRow = 5
+    
+    SetDisplay
+    
+    Application.DisplayAlerts = True
+    Application.ScreenUpdating = True
+    
+    Exit Sub
+
+CannotFindRevFile:
+    CreatePartNumbers.Cells(2, 2).Value = "Revison History Not Found - Current Revision: " & RevNum & " (" & RevDate & ")"
+    CreatePartNumbers.Cells(2, 2).Font.Color = -16776961
+    CreatePartNumbers.Cells(2, 2).Font.TintAndShade = 0
+    Range("Z105").Select
+    ActiveWindow.ScrollColumn = 1
+    ActiveWindow.ScrollRow = 5
+    
+    SetDisplay
+    
+    Application.DisplayAlerts = True
+    Application.ScreenUpdating = True
+    
+End Sub
+
+Sub RevNote()
+    
+    On Error Resume Next
+    
+    CreatePartNumbers.Range("B2").Select
+    
+    With Selection.Validation
+        .Delete
+        .Add Type:=xlValidateInputOnly, AlertStyle:=xlValidAlertStop, Operator _
+        :=xlBetween
+        .IgnoreBlank = True
+        .InCellDropdown = True
+        
+        If ((RevNum > NewRevNum) And (RevDate >= NewRevDate)) Then
+            .InputTitle = "Revision: " & RevNum & " beta (" & RevDate & ")"
+        Else
+            .InputTitle = "Latest Revision: " & NewRevNum & " (" & NewRevDate & ")"
+        End If
+        
+        .ErrorTitle = ""
+        .InputMessage = NewRevDesc
+        .ErrorMessage = ""
+        .ShowInput = True
+        .ShowError = True
+    End With
+    
+    On Error GoTo 0
+
+End Sub
+
+Sub SetDisplay()
+    
+    Dim debugUser As String: debugUser = ""
+    
+    If (UCase$(Environ$("username")) = debugUser) Then
+        
+        'Protect Sheets
+        CreatePartNumbers.Protect DrawingObjects:=False, Contents:=False, Scenarios:=False, AllowSorting:=True, AllowFiltering:=True
+        ProcessDataCPN.Protect DrawingObjects:=False, Contents:=False, Scenarios:=False, AllowSorting:=True, AllowFiltering:=True
+        PartHistory.Protect DrawingObjects:=False, Contents:=False, Scenarios:=False, AllowSorting:=True, AllowFiltering:=True
+        BOM_Creation.Protect DrawingObjects:=False, Contents:=False, Scenarios:=False, AllowSorting:=True, AllowFiltering:=True
+        ProcessDataBOM.Protect DrawingObjects:=False, Contents:=False, Scenarios:=False, AllowSorting:=True, AllowFiltering:=True
+        ProcessRoutingBOM.Protect DrawingObjects:=False, Contents:=False, Scenarios:=False, AllowSorting:=True, AllowFiltering:=True
+        Dropdowns.Protect DrawingObjects:=False, Contents:=False, Scenarios:=False, AllowSorting:=True, AllowFiltering:=True
+        'ThisWorkbook.Protect Structure:=False, Windows:=False
+        
+        'Visible Sheets
+        CreatePartNumbers.Visible = True
+        ProcessDataCPN.Visible = True
+        PartHistory.Visible = True
+        BOM_Creation.Visible = True
+        ProcessDataBOM.Visible = True
+        ProcessRoutingBOM.Visible = True
+        WHI_Materials.Visible = True
+        SAB_Materials.Visible = True
+        Dropdowns.Visible = True
+        
+        GoTo DEBUGGING
+        
+    End If
+
+    ThisWorkbook.Unprotect
+    'Reset Whitewater Materials Page
+    WHI_Materials.Activate
+    Range("Z105").Select
+    ActiveWindow.ScrollColumn = 1
+    ActiveWindow.ScrollRow = 2
+    
+    'Reset Sabetha Materials Page
+    SAB_Materials.Activate
+    Range("Z105").Select
+    ActiveWindow.ScrollColumn = 1
+    ActiveWindow.ScrollRow = 2
+    
+    'Reset B.O.M. Sheet
+    BOM_Creation.Activate
+    
+    ClearBOM
+    
+    Range("Z105").Select
+    ActiveWindow.ScrollColumn = 1
+    ActiveWindow.ScrollRow = 7
+    
+    'Reset Create Part Numbers Sheet
+    CreatePartNumbers.Activate
+    
+    ClearTableCPN
+    
+    Range("Z105").Select
+    ActiveWindow.ScrollColumn = 1
+    ActiveWindow.ScrollRow = 5
+    
+    'Visible Sheets
+    CreatePartNumbers.Visible = True
+    ProcessDataCPN.Visible = False
+    PartHistory.Visible = True
+    BOM_Creation.Visible = True
+    ProcessDataBOM.Visible = False
+    ProcessRoutingBOM.Visible = False
+    WHI_Materials.Visible = True
+    SAB_Materials.Visible = True
+    Dropdowns.Visible = False
+    
+    'Protect Sheets
+    CreatePartNumbers.Protect DrawingObjects:=True, Contents:=True, Scenarios:=True, AllowSorting:=True, AllowFiltering:=True
+    ProcessDataCPN.Protect DrawingObjects:=True, Contents:=True, Scenarios:=True, AllowSorting:=True, AllowFiltering:=True
+    PartHistory.Protect DrawingObjects:=True, Contents:=True, Scenarios:=True, AllowSorting:=True, AllowFiltering:=True
+    BOM_Creation.Protect DrawingObjects:=True, Contents:=True, Scenarios:=True, AllowSorting:=True, AllowFiltering:=True
+    ProcessDataBOM.Protect DrawingObjects:=True, Contents:=True, Scenarios:=True, AllowSorting:=True, AllowFiltering:=True
+    ProcessRoutingBOM.Protect DrawingObjects:=True, Contents:=True, Scenarios:=True, AllowSorting:=True, AllowFiltering:=True
+    Dropdowns.Protect DrawingObjects:=True, Contents:=True, Scenarios:=True, AllowSorting:=True, AllowFiltering:=True
+    ActiveWorkbook.Protect Structure:=True, Windows:=False
+    
+DEBUGGING:
+
+    
+End Sub
+
+Sub PasteAsValue()
+    On Error GoTo OutsidePaste
+    Selection.PasteSpecial Paste:=xlPasteValues, Operation:=xlNone, SkipBlanks:=False, Transpose:=False
+    Exit Sub
+OutsidePaste:
+    ActiveSheet.PasteSpecial Format:="Text", Link:=False, DisplayAsIcon:=False
+End Sub
