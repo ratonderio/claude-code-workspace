@@ -1,0 +1,83 @@
+# Family HQ configuration. Copy to config.toml and edit.
+# Secrets (tokens, API keys) do NOT go here; put them in .env (see .env.example).
+# Relative paths are relative to THIS file, not to where you launch the program.
+
+[app]
+# IANA name. Windows needs the `tzdata` package (installed automatically).
+timezone = "America/New_York"
+data_dir = "data"                 # database and default backups live here
+
+[database]
+# Leave unset to use <data_dir>/family_hq.sqlite3. Do NOT place it in OneDrive/Dropbox/Drive.
+# A PostgreSQL URL here is the future migration path: "postgresql+psycopg://user:pass@host/db"
+# url = ""
+
+[cli]
+# Person (by display name) the CLI acts as. Override per command with --as NAME.
+# If unset and exactly one ADMIN exists, that person is used.
+# default_actor = "Joey"
+
+[categories]
+# Inserted ONLY when the categories table is empty (first init). Manage afterwards with
+# `family-hq category add|rename|deactivate`.
+# initial = ["Chore", "Cleaning", "Errand", "Parenting", "School", "Appointment", "Finance",
+#            "Administrative", "Repair", "Vehicle", "Shopping", "Home", "Project", "Personal", "Work"]
+
+[workload]
+# Relative workload points per effort bucket. These are NOT hours; they exist to answer
+# questions like "most of my remaining workload is in a few large tasks".
+[workload.points]
+XS = 1
+S = 2
+M = 4
+L = 8
+XL = 16
+
+[visibility]
+# Which integrations may receive which scope. Scopes you omit use the safe defaults below.
+# DISCORD_CHANNEL and GOOGLE_FAMILY are family-audience sinks: they can only ever carry FAMILY
+# content, and listing them under another scope is a configuration error.
+# Sinks: DISCORD_CHANNEL, DISCORD_EPHEMERAL, GOOGLE_FAMILY, GOOGLE_PRIVATE, OBSIDIAN, AI
+[visibility.sinks]
+FAMILY       = ["DISCORD_CHANNEL", "DISCORD_EPHEMERAL", "GOOGLE_FAMILY", "GOOGLE_PRIVATE", "OBSIDIAN", "AI"]
+PERSONAL     = ["DISCORD_EPHEMERAL", "OBSIDIAN"]          # add "GOOGLE_PRIVATE" to opt in
+PRIVATE_WORK = ["OBSIDIAN"]                               # local-only by default; no AI
+
+[backup]
+enabled = true
+interval_hours = 24               # used by `family-hq run`
+
+[backup.retention]
+keep_last = 14                    # always keep the newest N
+keep_daily_days = 30              # plus the newest backup of each of the last N days
+keep_weekly_weeks = 12            # plus the newest of each of the last N ISO weeks
+
+# With no [[backup.destinations]], one destination "local" at <data_dir>/backups is used.
+# Add more to copy backups elsewhere. A destination inside a cloud-synced folder should scrub
+# private scopes so private-work task text never leaves this machine:
+#
+# [[backup.destinations]]
+# name = "local"
+# path = "data/backups"
+#
+# [[backup.destinations]]
+# name = "usb"
+# path = "E:/family-hq-backups"
+#
+# [[backup.destinations]]
+# name = "cloud-synced"
+# path = "C:/Users/you/OneDrive/family-hq-backups"
+# scrub_scopes = ["PRIVATE_WORK"]   # scrubbed copy: rows removed and file VACUUMed
+
+[logging]
+level = "INFO"
+json = false                      # true = one JSON object per line
+# file = "data/family_hq.log"
+
+# ---- later phases (not yet supported; uncommenting will be rejected) ------------------------
+# [discord]   Phase 2   guild id, channel ids, digest settings
+# [recurrence] Phase 3  horizon_days
+# [reports]   Phase 4   schedule
+# [google]    Phase 5   sheet id, calendar id
+# [obsidian]  Phase 6   vault_path
+# [ai]        Phase 7   provider, model

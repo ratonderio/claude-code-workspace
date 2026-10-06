@@ -1,0 +1,53 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "family-hq"
+version = "0.1.0"
+description = "Household task coordination, workload tracking and reporting (personal project)."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "sqlalchemy>=2.0,<2.2",
+  "alembic>=1.13",
+  "pydantic>=2.6",
+  "pydantic-settings>=2.2",
+  "click>=8.1",
+  "tzdata>=2024.1",  # Windows has no IANA time zone database
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff>=0.5", "mypy>=1.10"]
+
+[project.scripts]
+family-hq = "family_hq.cli.main:cli"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/family_hq"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
+ignore = ["RUF012"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["E501"]  # long SQL strings and fixtures read better unwrapped
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+mypy_path = "src"
+plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+module = ["alembic.*"]
+ignore_missing_imports = true
